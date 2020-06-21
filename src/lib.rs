@@ -1,8 +1,12 @@
+use entity_table::ComponentTable;
+#[cfg(feature = "serialize")]
+use entity_table::ComponentTableEntries;
 pub use entity_table::Entity; // public so it can be referenced in macro body
-use entity_table::{ComponentTable, ComponentTableEntries};
 use grid_2d::Grid;
 pub use grid_2d::{Coord, Size};
+#[cfg(feature = "serialize")]
 pub use serde; // public so it can be referenced in macro body
+#[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
 pub trait Layers: Default {
@@ -10,6 +14,42 @@ pub trait Layers: Default {
     fn select_field_mut(&mut self, layer: Self::Layer) -> &mut Option<Entity>;
 }
 
+#[cfg(not(feature = "serialize"))]
+#[macro_export]
+macro_rules! declare_layers_module {
+    { $module_name:ident { $($field_name:ident: $variant_name:ident,)* } } => {
+        mod $module_name {
+            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+            pub struct Layers {
+                $(pub $field_name: Option<$crate::Entity>,)*
+            }
+
+            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+            pub enum Layer {
+                $($variant_name,)*
+            }
+
+            impl Default for Layers {
+                fn default() -> Self {
+                    Self {
+                        $($field_name: None,)*
+                    }
+                }
+            }
+
+            impl $crate::Layers for Layers {
+                type Layer = Layer;
+                fn select_field_mut(&mut self, layer: Self::Layer) -> &mut Option<$crate::Entity> {
+                    match layer {
+                        $(Layer::$variant_name => &mut self.$field_name,)*
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[cfg(feature = "serialize")]
 #[macro_export]
 macro_rules! declare_layers_module {
     { $module_name:ident { $($field_name:ident: $variant_name:ident,)* } } => {
@@ -44,7 +84,8 @@ macro_rules! declare_layers_module {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "serialize", derive(Serialize, Deserialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Location<L> {
     pub coord: Coord,
     pub layer: Option<L>,
@@ -141,12 +182,14 @@ impl<L: Layers> SpatialTable<L> {
             }
         }
     }
+    #[cfg(feature = "serialize")]
     fn to_serialize(&self) -> SpatialSerialize<L::Layer> {
         SpatialSerialize {
             entries: self.location_component.entries().clone(),
             size: self.spatial_grid.size(),
         }
     }
+    #[cfg(feature = "serialize")]
     fn from_serialize(SpatialSerialize { entries, size }: SpatialSerialize<L::Layer>) -> Self {
         let location_component = entries.into_component_table();
         let mut spatial_grid: Grid<L> = Grid::new_default(size);
@@ -205,12 +248,14 @@ fn clear_layer<L: Layers>(layers: &mut L, layer: L::Layer) -> Option<Entity> {
     layers.select_field_mut(layer).take()
 }
 
+#[cfg(feature = "serialize")]
 #[derive(Serialize, Deserialize)]
 struct SpatialSerialize<L> {
     entries: ComponentTableEntries<Location<L>>,
     size: Size,
 }
 
+#[cfg(feature = "serialize")]
 impl<L: Layers> Serialize for SpatialTable<L>
 where
     L::Layer: Serialize,
@@ -220,6 +265,7 @@ where
     }
 }
 
+#[cfg(feature = "serialize")]
 impl<'a, L: Layers> Deserialize<'a> for SpatialTable<L>
 where
     L::Layer: Deserialize<'a>,
