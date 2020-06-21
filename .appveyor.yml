@@ -4,3 +4,4 @@ install:
 test_script:
 - cargo test
 - cargo test --features serialize
+build: off
