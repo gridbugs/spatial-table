@@ -279,7 +279,6 @@ where
 mod test {
     declare_layers_module! {
         layers {
-            floor: Floor,
             feature: Feature,
             character: Character,
         }
@@ -402,7 +401,6 @@ mod test {
             Layers {
                 feature: Some(entity_a),
                 character: Some(entity_c),
-                floor: None,
             },
         );
         assert_eq!(
@@ -410,7 +408,6 @@ mod test {
             Layers {
                 feature: Some(entity_b),
                 character: None,
-                floor: None,
             },
         );
 
@@ -420,7 +417,6 @@ mod test {
             Layers {
                 feature: None,
                 character: Some(entity_c),
-                floor: None,
             },
         );
         assert_eq!(
@@ -432,7 +428,6 @@ mod test {
             Layers {
                 feature: Some(entity_b),
                 character: Some(entity_c),
-                floor: None,
             },
         );
         assert_eq!(
@@ -440,7 +435,6 @@ mod test {
             Layers {
                 feature: None,
                 character: None,
-                floor: None,
             },
         );
     }
