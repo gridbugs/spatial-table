@@ -179,6 +179,15 @@ pub enum UpdateError {
     DestinationOutOfBounds,
 }
 
+impl UpdateError {
+    pub fn unwrap_occupied_by(self) -> Entity {
+        match self {
+            Self::OccupiedBy(entity) => entity,
+            _ => panic!("unexpected {:?} (expected OccupiedBy(_))", self),
+        }
+    }
+}
+
 fn insert_layer<L: Layers>(
     layers: &mut L,
     entity: Entity,
