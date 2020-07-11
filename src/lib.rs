@@ -145,7 +145,7 @@ impl<L: Layers> SpatialTable<L> {
             let original_cell = self.spatial_grid.get_checked_mut(original_location.coord);
             if let Some(original_layer) = original_location.layer {
                 let should_match_entity = clear_layer(original_cell, original_layer);
-                assert_eq!(
+                debug_assert_eq!(
                     should_match_entity,
                     Some(entity),
                     "Current location of entity doesn't contain entity in spatial grid"
@@ -165,7 +165,7 @@ impl<L: Layers> SpatialTable<L> {
                     insert_layer(cell, entity, layer)?;
                     let original_cell = self.spatial_grid.get_checked_mut(location.coord);
                     let should_match_entity = clear_layer(original_cell, layer);
-                    assert_eq!(
+                    debug_assert_eq!(
                         should_match_entity,
                         Some(entity),
                         "Current location of entity doesn't contain entity in spatial grid"
@@ -185,7 +185,7 @@ impl<L: Layers> SpatialTable<L> {
     ) -> Result<(), UpdateLayerError> {
         if let Some(location) = self.location_component.get_mut(entity) {
             if Some(layer) != location.layer {
-                assert!(
+                debug_assert!(
                     location.coord.is_valid(self.spatial_grid.size()),
                     "Current location is outside the bounds of spatial grid"
                 );
@@ -197,7 +197,7 @@ impl<L: Layers> SpatialTable<L> {
                 *dest_entity_slot = Some(entity);
                 if let Some(current_layer) = location.layer {
                     let source_entity_slot = cell.select_field_mut(current_layer);
-                    assert_eq!(*source_entity_slot, Some(entity));
+                    debug_assert_eq!(*source_entity_slot, Some(entity));
                     *source_entity_slot = None;
                 }
                 location.layer = Some(layer);
@@ -210,13 +210,13 @@ impl<L: Layers> SpatialTable<L> {
     pub fn clear_layer(&mut self, entity: Entity) -> Result<(), EntityHasNoCoord> {
         if let Some(location) = self.location_component.get_mut(entity) {
             if let Some(layer) = location.layer {
-                assert!(
+                debug_assert!(
                     location.coord.is_valid(self.spatial_grid.size()),
                     "Current location is outside the bounds of spatial grid"
                 );
                 let cell = self.spatial_grid.get_mut(location.coord).unwrap();
                 let source_entity_slot = cell.select_field_mut(layer);
-                assert_eq!(*source_entity_slot, Some(entity));
+                debug_assert_eq!(*source_entity_slot, Some(entity));
                 *source_entity_slot = None;
                 location.layer = None;
             }
