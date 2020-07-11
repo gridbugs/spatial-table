@@ -10,7 +10,7 @@ pub use serde; // public so it can be referenced in macro body
 use serde::{Deserialize, Serialize};
 
 pub trait Layers: Default {
-    type Layer: Copy;
+    type Layer: Copy + PartialEq + Eq;
     fn select_field_mut(&mut self, layer: Self::Layer) -> &mut Option<Entity>;
 }
 
@@ -126,6 +126,9 @@ impl<L: Layers> SpatialTable<L> {
     pub fn coord_of(&self, entity: Entity) -> Option<Coord> {
         self.location_of(entity).map(|l| l.coord)
     }
+    pub fn layer_of(&self, entity: Entity) -> Option<L::Layer> {
+        self.location_of(entity).and_then(|l| l.layer)
+    }
     pub fn update(
         &mut self,
         entity: Entity,
@@ -173,6 +176,53 @@ impl<L: Layers> SpatialTable<L> {
             Ok(())
         } else {
             self.update(entity, Location { coord, layer: None })
+        }
+    }
+    pub fn update_layer(
+        &mut self,
+        entity: Entity,
+        layer: L::Layer,
+    ) -> Result<(), UpdateLayerError> {
+        if let Some(location) = self.location_component.get_mut(entity) {
+            if Some(layer) != location.layer {
+                assert!(
+                    location.coord.is_valid(self.spatial_grid.size()),
+                    "Current location is outside the bounds of spatial grid"
+                );
+                let cell = self.spatial_grid.get_mut(location.coord).unwrap();
+                let dest_entity_slot = cell.select_field_mut(layer);
+                if let Some(dest_entity) = dest_entity_slot {
+                    return Err(UpdateLayerError::OccupiedBy(*dest_entity));
+                }
+                *dest_entity_slot = Some(entity);
+                if let Some(current_layer) = location.layer {
+                    let source_entity_slot = cell.select_field_mut(current_layer);
+                    assert_eq!(*source_entity_slot, Some(entity));
+                    *source_entity_slot = None;
+                }
+                location.layer = Some(layer);
+            }
+            Ok(())
+        } else {
+            Err(UpdateLayerError::EntityHasNoCoord)
+        }
+    }
+    pub fn clear_layer(&mut self, entity: Entity) -> Result<(), EntityHasNoCoord> {
+        if let Some(location) = self.location_component.get_mut(entity) {
+            if let Some(layer) = location.layer {
+                assert!(
+                    location.coord.is_valid(self.spatial_grid.size()),
+                    "Current location is outside the bounds of spatial grid"
+                );
+                let cell = self.spatial_grid.get_mut(location.coord).unwrap();
+                let source_entity_slot = cell.select_field_mut(layer);
+                assert_eq!(*source_entity_slot, Some(entity));
+                *source_entity_slot = None;
+                location.layer = None;
+            }
+            Ok(())
+        } else {
+            Err(EntityHasNoCoord)
         }
     }
     pub fn remove(&mut self, entity: Entity) {
@@ -231,6 +281,24 @@ impl UpdateError {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UpdateLayerError {
+    OccupiedBy(Entity),
+    EntityHasNoCoord,
+}
+
+impl UpdateLayerError {
+    pub fn unwrap_occupied_by(self) -> Entity {
+        match self {
+            Self::OccupiedBy(entity) => entity,
+            _ => panic!("unexpected {:?} (expected OccupiedBy(_))", self),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EntityHasNoCoord;
+
 fn insert_layer<L: Layers>(
     layers: &mut L,
     entity: Entity,
@@ -285,7 +353,7 @@ mod test {
     }
     use layers::{Layer, Layers};
     type SpatialTable = super::SpatialTable<Layers>;
-    use super::{Coord, Location, Size, UpdateError};
+    use super::{Coord, Location, Size, UpdateError, UpdateLayerError};
     use entity_table::EntityAllocator;
 
     #[test]
@@ -411,6 +479,38 @@ mod test {
             },
         );
 
+        spatial_table
+            .update_layer(entity_a, Layer::Feature)
+            .unwrap();
+        assert_eq!(
+            *spatial_table.layers_at_checked(Coord::new(6, 7)),
+            Layers {
+                feature: Some(entity_a),
+                character: Some(entity_c),
+            },
+        );
+
+        assert_eq!(
+            spatial_table.update_layer(entity_a, Layer::Character),
+            Err(UpdateLayerError::OccupiedBy(entity_c))
+        );
+
+        spatial_table
+            .update_layer(entity_b, Layer::Character)
+            .unwrap();
+        assert_eq!(
+            *spatial_table.layers_at_checked(Coord::new(6, 8)),
+            Layers {
+                feature: None,
+                character: Some(entity_b),
+            },
+        );
+        assert_eq!(spatial_table.layer_of(entity_b), Some(Layer::Character));
+        spatial_table
+            .update_layer(entity_b, Layer::Feature)
+            .unwrap();
+        assert_eq!(spatial_table.layer_of(entity_b), Some(Layer::Feature));
+
         spatial_table.remove(entity_a);
         assert_eq!(
             *spatial_table.layers_at_checked(Coord::new(6, 7)),
@@ -437,5 +537,16 @@ mod test {
                 character: None,
             },
         );
+
+        spatial_table.clear_layer(entity_b).unwrap();
+        assert_eq!(
+            *spatial_table.layers_at_checked(Coord::new(6, 7)),
+            Layers {
+                feature: None,
+                character: Some(entity_c),
+            },
+        );
+        assert_eq!(spatial_table.coord_of(entity_b), Some(Coord::new(6, 7)));
+        assert_eq!(spatial_table.layer_of(entity_b), None);
     }
 }
