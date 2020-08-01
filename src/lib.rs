@@ -108,6 +108,12 @@ impl<L: Layers> SpatialTable<L> {
             spatial_grid,
         }
     }
+    pub fn clear(&mut self) {
+        self.location_component.clear();
+        for cell in self.spatial_grid.iter_mut() {
+            *cell = Default::default();
+        }
+    }
     pub fn enumerate(&self) -> Enumerate<L> {
         self.spatial_grid.enumerate()
     }
