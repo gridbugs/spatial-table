@@ -6,8 +6,8 @@ authors = ["Stephen Sherratt <stephen@sherra.tt>"]
 edition = "2018"
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/stevebob/spatial-table.git"
-repository = "https://github.com/stevebob/spatial-table.git"
+homepage = "https://github.com/gridbugs/spatial-table.git"
+repository = "https://github.com/gridbugs/spatial-table.git"
 documentation = "https://docs.rs/spatial_table"
 
 [features]
