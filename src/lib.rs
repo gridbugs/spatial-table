@@ -20,16 +20,18 @@ macro_rules! declare_layers_module {
     { $module_name:ident { $($field_name:ident: $variant_name:ident,)* } } => {
         mod $module_name {
             #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-            pub struct Layers {
-                $(pub $field_name: Option<$crate::Entity>,)*
+            pub struct LayerTable<T> {
+                $(pub $field_name: T,)*
             }
+
+            pub type Layers = LayerTable<Option<$crate::Entity>>;
 
             #[derive(Debug, Clone, Copy, PartialEq, Eq)]
             pub enum Layer {
                 $($variant_name,)*
             }
 
-            impl Default for Layers {
+            impl<T> Default for LayerTable<Option<T>> {
                 fn default() -> Self {
                     Self {
                         $($field_name: None,)*
@@ -43,6 +45,27 @@ macro_rules! declare_layers_module {
                     match layer {
                         $(Layer::$variant_name => &mut self.$field_name,)*
                     }
+                }
+            }
+
+            impl<T> LayerTable<T> {
+                #[allow(unused)]
+                pub fn map<U, F: FnMut(&T) -> U>(&self, mut f: F) -> LayerTable<U> {
+                    LayerTable {
+                        $($field_name: f(&self.$field_name),)*
+                    }
+                }
+            }
+
+            impl<T> LayerTable<Option<T>> {
+                #[allow(unused)]
+                pub fn option_map<U, F: FnMut(&T) -> U>(&self, mut f: F) -> LayerTable<Option<U>> {
+                    self.map(|ot| ot.as_ref().map(|t| f(t)))
+                }
+
+                #[allow(unused)]
+                pub fn option_and_then<U, F: FnMut(&T) -> Option<U>>(&self, mut f: F) -> LayerTable<Option<U>> {
+                    self.map(|ot| ot.as_ref().and_then(|t| f(t)))
                 }
             }
         }
@@ -55,16 +78,18 @@ macro_rules! declare_layers_module {
     { $module_name:ident { $($field_name:ident: $variant_name:ident,)* } } => {
         mod $module_name {
             #[derive(Debug, Clone, Copy, PartialEq, Eq, $crate::serde::Serialize, $crate::serde::Deserialize)]
-            pub struct Layers {
-                $(pub $field_name: Option<$crate::Entity>,)*
+            pub struct LayerTable<T> {
+                $(pub $field_name: T,)*
             }
+
+            pub type Layers = LayerTable<Option<$crate::Entity>>;
 
             #[derive(Debug, Clone, Copy, PartialEq, Eq, $crate::serde::Serialize, $crate::serde::Deserialize)]
             pub enum Layer {
                 $($variant_name,)*
             }
 
-            impl Default for Layers {
+            impl<T> Default for LayerTable<Option<T>> {
                 fn default() -> Self {
                     Self {
                         $($field_name: None,)*
@@ -78,6 +103,27 @@ macro_rules! declare_layers_module {
                     match layer {
                         $(Layer::$variant_name => &mut self.$field_name,)*
                     }
+                }
+            }
+
+            impl<T> LayerTable<T> {
+                #[allow(unused)]
+                pub fn map<U, F: FnMut(&T) -> U>(&self, mut f: F) -> LayerTable<U> {
+                    LayerTable {
+                        $($field_name: f(&self.$field_name),)*
+                    }
+                }
+            }
+
+            impl<T> LayerTable<Option<T>> {
+                #[allow(unused)]
+                pub fn option_map<U, F: FnMut(&T) -> U>(&self, mut f: F) -> LayerTable<Option<U>> {
+                    self.map(|ot| ot.as_ref().map(|t| f(t)))
+                }
+
+                #[allow(unused)]
+                pub fn option_and_then<U, F: FnMut(&T) -> Option<U>>(&self, mut f: F) -> LayerTable<Option<U>> {
+                    self.map(|ot| ot.as_ref().and_then(|t| f(t)))
                 }
             }
         }
