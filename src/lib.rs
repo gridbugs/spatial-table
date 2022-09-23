@@ -55,6 +55,16 @@ macro_rules! declare_layers_module {
                         $($field_name: f(&self.$field_name),)*
                     }
                 }
+
+                #[allow(unused)]
+                pub fn for_each<F: FnMut(&T)>(&self, mut f: F) {
+                    $(f(&self.$field_name);)*
+                }
+
+                #[allow(unused)]
+                pub fn for_each_enumerate<F: FnMut(&T, Layer)>(&self, mut f: F) {
+                    $(f(&self.$field_name, Layer::$variant_name);)*
+                }
             }
 
             impl<T> LayerTable<Option<T>> {
@@ -66,6 +76,16 @@ macro_rules! declare_layers_module {
                 #[allow(unused)]
                 pub fn option_and_then<U, F: FnMut(&T) -> Option<U>>(&self, mut f: F) -> LayerTable<Option<U>> {
                     self.map(|ot| ot.as_ref().and_then(|t| f(t)))
+                }
+
+                #[allow(unused)]
+                pub fn option_for_each<F: FnMut(&T)>(&self, mut f: F) {
+                    $(if let Some(t) = self.$field_name.as_ref() { f(t); })*
+                }
+
+                #[allow(unused)]
+                pub fn option_for_each_enumerate<F: FnMut(&T, Layer)>(&self, mut f: F) {
+                    $(if let Some(t) = self.$field_name.as_ref() { f(t, Layer::$variant_name); })*
                 }
             }
         }
@@ -113,6 +133,16 @@ macro_rules! declare_layers_module {
                         $($field_name: f(&self.$field_name),)*
                     }
                 }
+
+                #[allow(unused)]
+                pub fn for_each<F: FnMut(&T)>(&self, mut f: F) {
+                    $(f(&self.$field_name);)*
+                }
+
+                #[allow(unused)]
+                pub fn for_each_enumerate<F: FnMut(&T, Layer)>(&self, mut f: F) {
+                    $(f(&self.$field_name, Layer::$variant_name);)*
+                }
             }
 
             impl<T> LayerTable<Option<T>> {
@@ -124,6 +154,16 @@ macro_rules! declare_layers_module {
                 #[allow(unused)]
                 pub fn option_and_then<U, F: FnMut(&T) -> Option<U>>(&self, mut f: F) -> LayerTable<Option<U>> {
                     self.map(|ot| ot.as_ref().and_then(|t| f(t)))
+                }
+
+                #[allow(unused)]
+                pub fn option_for_each<F: FnMut(&T)>(&self, mut f: F) {
+                    $(if let Some(t) = self.$field_name.as_ref() { f(t); })*
+                }
+
+                #[allow(unused)]
+                pub fn option_for_each_enumerate<F: FnMut(&T, Layer)>(&self, mut f: F) {
+                    $(if let Some(t) = self.$field_name.as_ref() { f(t, Layer::$variant_name); })*
                 }
             }
         }
