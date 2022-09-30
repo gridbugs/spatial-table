@@ -177,6 +177,15 @@ pub struct Location<L> {
     pub layer: Option<L>,
 }
 
+impl<L> From<(Coord, L)> for Location<L> {
+    fn from((coord, layer): (Coord, L)) -> Self {
+        Self {
+            coord,
+            layer: Some(layer),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct SpatialTable<L: Layers> {
     location_component: ComponentTable<Location<L::Layer>>,
